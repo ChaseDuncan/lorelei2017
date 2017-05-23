@@ -1,0 +1,95 @@
+package edu.illinois.cs.cogcomp.ner.lbjava;
+
+import edu.illinois.cs.cogcomp.core.algorithms.LevensteinDistance;
+import edu.illinois.cs.cogcomp.ner.*;
+
+import java.util.*;
+
+
+real StartDist(WordPair p) <- {
+    return -Math.abs(p.span.getFirst() - p.refspan.getFirst());
+}
+
+real EndDist(WordPair p) <- {
+    return -Math.abs(p.span.getSecond() - p.refspan.getSecond());
+}
+
+// This is normalized.
+real LevDistFeat(WordPair p) <- {
+    return -LevensteinDistance.getLevensteinDistance(p.refword, p.word) / Math.max(p.refword.length(), p.word.length());
+}
+
+// Normalized already.
+real TranslationProb(WordPair p) <- {
+    return p.translationprob;
+}
+
+// Normalized already.
+real TransliterationProb(WordPair p) <- {
+    return p.transliterationprob;
+}
+
+
+discrete NERLabel(WordPair p) <-
+{
+    return p.reflabel;
+}
+
+real Ngramfeats2(WordPair p) <-
+{
+     HashSet sourcechars = new HashSet();
+     for(int i =0; i < p.refword.length()-1; i+=2){
+         sourcechars.add(p.refword.substring(i, i+2));
+     }
+
+     int total = 0;
+     for(int i =0; i < p.word.length()-1; i+=2){
+         if(sourcechars.contains(p.word.substring(i, i+2))){
+             total += 1;
+         }
+     }
+
+     return total;
+
+}
+
+real Ngramfeats3(WordPair p) <-
+{
+     HashSet sourcechars = new HashSet();
+     for(int i =0; i < p.refword.length()-2; i+=3){
+         sourcechars.add(p.refword.substring(i, i+3));
+     }
+
+     int total = 0;
+     for(int i =0; i < p.word.length()-2; i+=3){
+         if(sourcechars.contains(p.word.substring(i, i+3))){
+             total += 1;
+         }
+     }
+
+     return total;
+
+}
+
+discrete{"false", "true"} Identity(WordPair p) <-
+{
+    return p.refword.equals(p.word);
+}
+
+discrete{"false", "true"} Subset(WordPair p) <-
+{
+    return p.refword.contains(p.word) || p.word.contains(p.refword);
+
+}
+
+discrete WordMatch(WordPair p) <- { return p.match; }
+
+
+discrete NamePairClassifier(WordPair p)  <-
+learn WordMatch
+  using TransliterationProb, TranslationProb //, Ngramfeats2, Ngramfeats3, Identity, Subset // LevDistFeat
+
+  with new SparseNetworkLearner(new SparseAveragedPerceptron(.1, 0, 20))
+
+end
+
