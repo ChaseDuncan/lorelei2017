@@ -1,9 +1,9 @@
-package edu.illinois.cs.cogcomp.reader.lorelei;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
-import edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException;
-import edu.illinois.cs.cogcomp.reader.util.SimpleXMLParser;
+import edu.illinois.cs.cogcomp.lorelei.xml.XMLException;
+import edu.illinois.cs.cogcomp.lorelei.xml.SimpleXMLParser;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,12 +14,11 @@ import org.w3c.dom.NodeList;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static edu.illinois.cs.cogcomp.reader.lorelei.ReflexReader.kickoff;
 
 /**
  * This is intended to get plain text from ltf files in order to get parallel alignments.

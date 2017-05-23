@@ -1,4 +1,4 @@
-package edu.illinois.cs.cogcomp.ner.data;
+package edu.illinois.cs.cogcomp.lorelei.data;
 
 import edu.illinois.cs.cogcomp.annotation.AnnotatorException;
 import edu.illinois.cs.cogcomp.annotation.AnnotatorService;

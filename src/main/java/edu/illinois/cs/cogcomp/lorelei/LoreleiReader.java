@@ -1,12 +1,9 @@
-package edu.illinois.cs.cogcomp.reader.lorelei;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
-import edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException;
-import edu.illinois.cs.cogcomp.reader.example.EntityCorpusGenerator;
-import edu.illinois.cs.cogcomp.reader.util.IOManager;
-import edu.illinois.cs.cogcomp.reader.util.SimpleXMLParser;
-import org.apache.log4j.BasicConfigurator;
+import edu.illinois.cs.cogcomp.lorelei.xml.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
@@ -65,7 +62,7 @@ public class LoreleiReader {
      */
     public static void getTwitter(String outdir) throws IOException, XMLException {
         logger.debug("laf directory: " + nerdir);
-        String[] laf_files = IOManager.listDirectory(nerdir);
+        String[] laf_files = (new File(nerdir)).list();
 
         logger.debug("Number of laf files: " + laf_files.length);
 
@@ -169,7 +166,7 @@ public class LoreleiReader {
      */
     public static void readFiles(String outdir) throws XMLException, IOException {
         logger.debug("laf directory: " + nerdir);
-        String[] laf_files = IOManager.listDirectory(nerdir);
+        String[] laf_files = (new File(nerdir)).list();
 
         logger.debug("Number of laf files: " + laf_files.length);
 
@@ -289,7 +286,7 @@ public class LoreleiReader {
     }
 
     public static void main(String[] args) throws XMLException, IOException {
-        BasicConfigurator.configure();
+        //BasicConfigurator.configure();
         readFiles(outdir);
 //        getTwitter(outdir);
 ;

@@ -1,8 +1,9 @@
-package edu.illinois.cs.cogcomp.ner;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
 
 public class MQLQueryWrapper {
 

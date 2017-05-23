@@ -1,9 +1,9 @@
 /**
  * 
  */
-package edu.illinois.cs.cogcomp.reader.util;
+package edu.illinois.cs.cogcomp.lorelei.xml;
 
-import edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException;
+import edu.illinois.cs.cogcomp.lorelei.xml.XMLException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.file.Path;
 
 /**
  * @author Eric Bengtson
@@ -30,7 +29,6 @@ public class SimpleXMLParser {
      *                The file to parse
      * @return The {@code Document} XML tag -- the root of the
      *         document.
-     * @throws edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException
      */
     public static Document getDocument(String filename) throws XMLException {
 	return getDocument(new File(filename));
@@ -51,7 +49,6 @@ public class SimpleXMLParser {
 		if(dtdpath != "") {
 			docBuilder = getDocumentBuilder();
 			docBuilder.setEntityResolver(new EntityResolver() {
-				@Override
 				public InputSource resolveEntity(String publicId, String systemId)
 						throws SAXException, IOException {
 
@@ -71,7 +68,6 @@ public class SimpleXMLParser {
 			// don't validate.
 			docBuilder = getDocumentBuilder(false);
 			docBuilder.setEntityResolver(new EntityResolver() {
-				@Override
 				public InputSource resolveEntity(String publicId, String systemId)
 						throws SAXException, IOException {
 					System.out.println("Ignoring " + publicId + ", " + systemId);

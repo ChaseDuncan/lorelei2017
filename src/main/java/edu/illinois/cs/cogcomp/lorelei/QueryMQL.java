@@ -1,8 +1,5 @@
-package edu.illinois.cs.cogcomp.ner;
+package edu.illinois.cs.cogcomp.lorelei;
 
-import com.google.api.client.http.*;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.jayway.jsonpath.JsonPath;
 import edu.illinois.cs.cogcomp.core.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;

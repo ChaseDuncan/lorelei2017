@@ -1,4 +1,4 @@
-package edu.illinois.cs.cogcomp.reader.commondatastructure;
+package edu.illinois.cs.cogcomp.lorelei.xml;
 
 /**
  * @author Eric Bengtson

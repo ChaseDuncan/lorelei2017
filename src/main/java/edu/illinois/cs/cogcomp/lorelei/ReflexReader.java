@@ -1,17 +1,14 @@
-package edu.illinois.cs.cogcomp.reader.lorelei;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
-import edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException;
-import edu.illinois.cs.cogcomp.reader.example.EntityCorpusGenerator;
-import edu.illinois.cs.cogcomp.reader.util.IOManager;
-import edu.illinois.cs.cogcomp.reader.util.SimpleXMLParser;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.BasicConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
+
+import edu.illinois.cs.cogcomp.lorelei.xml.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import static edu.illinois.cs.cogcomp.reader.lorelei.LoreleiReader.nerdir;
+import static edu.illinois.cs.cogcomp.lorelei.LoreleiReader.nerdir;
 
 /**
  * This is an almost duplicate of {@link LoreleiReader}. Some of the REFLEX data packages
@@ -36,7 +33,7 @@ import static edu.illinois.cs.cogcomp.reader.lorelei.LoreleiReader.nerdir;
 @SuppressWarnings("Duplicates")
 public class ReflexReader {
 
-    private static Logger logger = LoggerFactory.getLogger( LoreleiReader.class );
+    private static Logger logger = LoggerFactory.getLogger( ReflexReader.class );
 
 
     static String kickoff = "/shared/corpora/corporaWeb/lorelei/20150908-kickoff-release/";
@@ -86,7 +83,8 @@ public class ReflexReader {
         }
 
         logger.debug("laf directory: " + nerdir);
-        String[] laf_files = IOManager.listDirectory(nerdir);
+
+        String[] laf_files = (new File(nerdir)).list();
 
         logger.debug("Number of laf files: " + laf_files.length);
 
@@ -228,7 +226,7 @@ public class ReflexReader {
     }
 
     public static void main(String[] args) throws XMLException, IOException {
-        BasicConfigurator.configure();
+        //BasicConfigurator.configure();
         readFiles(outdir);
     }
 }

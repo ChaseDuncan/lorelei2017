@@ -1,16 +1,16 @@
-package edu.illinois.cs.cogcomp.reader.lorelei;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
-import edu.illinois.cs.cogcomp.reader.commondatastructure.XMLException;
-import edu.illinois.cs.cogcomp.reader.util.SimpleXMLParser;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import edu.illinois.cs.cogcomp.lorelei.xml.*;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -30,7 +30,7 @@ public class GetParallelDryRun {
      * Created by mayhew2 on 2/22/16.
      */
 
-        private static Logger logger = LoggerFactory.getLogger( GetParallel.class );
+        private static Logger logger = LoggerFactory.getLogger( GetParallelDryRun.class );
 
      static String basedir = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/set0/";
     ///shared/corpora/corporaWeb/lorelei/dryrun/LDC2016E56_LORELEI_Year1_Dry_Run_Evaluation_IL2_V1.1/set0/";
