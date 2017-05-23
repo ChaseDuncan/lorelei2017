@@ -513,7 +513,7 @@ public class UgDictionary {
     }
 
 
-    public void transferAnnotations(String origpath, String ulypath, String outfolder) throws IOException {
+    public void transferAnnotations(String origpath, String ulypath, String outfolder) throws Exception {
         File f = new File(ulypath);
 
         String[] files = f.list();

@@ -1,7 +1,7 @@
-package edu.illinois.cs.cogcomp.ner.lbjava;
+package edu.illinois.cs.cogcomp.lorelei.lbjava;
 
 import edu.illinois.cs.cogcomp.core.algorithms.LevensteinDistance;
-import edu.illinois.cs.cogcomp.ner.*;
+import edu.illinois.cs.cogcomp.lorelei.*;
 
 import java.util.*;
 

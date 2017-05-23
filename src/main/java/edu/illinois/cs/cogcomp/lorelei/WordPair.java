@@ -1,4 +1,4 @@
-package edu.illinois.cs.cogcomp.ner;
+package edu.illinois.cs.cogcomp.lorelei;
 
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 
