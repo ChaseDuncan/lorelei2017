@@ -39,58 +39,62 @@ public class AlignmentProjectorTac {
 
     private static Logger logger = LoggerFactory.getLogger( AlignmentProjectorTac.class );
 
-
-    private static String mynerconfig = "config/tac.config";
-
     /**
-     * Given a set of alignments (read by {@link AlignmentReaders}) of English-Foreign
-     * alignments, annotate English and project to foreign. Generates
-     * CoNLL style outputs for training NER.
-     **/
-    public void project(List<AlignmentReaders.Alignment> alignments, String outfile) throws Exception {
-        String docId = "NOTHING"; // arbitrary string identifier
-        String textId = "body"; // arbitrary string identifier
-
-        String TACVIEW = "NER_TAC";
-//        String TACVIEW = ViewNames.NER_CONLL;
+     * Factored out.
+     * @return
+     */
+    public HashMap<String, List<Constituent>> getconsmap(){
+        HashMap<String, List<Constituent>> consmap = new HashMap<>();
 
         CoNLLNerReader cnr = new CoNLLNerReader("/shared/corpora/ner/wikifier-features/en/train-camera3-misc/");
-
-        HashMap<String, List<Constituent>> consmap = new HashMap<>();
 
         TextAnnotation ta;
         while(cnr.hasNext()){
             ta = cnr.next();
 
             System.out.println(ta.getId());
-            
+
             View sents = ta.getView(ViewNames.SENTENCE);
             View ner = ta.getView(ViewNames.NER_CONLL);
-            
+
             for(Constituent sent : sents.getConstituents()) {
-                
+
                 List<Constituent> oldcons = ner.getConstituentsCovering(sent);
-                
+
                 List<Constituent> nercons = new ArrayList<>();
 
                 int offset = sent.getStartSpan();
-                
+
                 for(Constituent c : oldcons){
                     Constituent newc = new Constituent(c.getLabel(), c.getViewName(), c.getTextAnnotation(), c.getStartSpan()-offset, c.getEndSpan()-offset);
                     nercons.add(newc);
                 }
                 String stringsent = sent.getTokenizedSurfaceForm().trim();
 
-                if(stringsent.contains("Kevorkian attends")){
-                    System.out.println("EHLLO");
-
-                }
-
                 consmap.put(stringsent, nercons);
 
 
             }
         }
+        return consmap;
+    }
+
+
+    /**
+     * Given a set of alignments (read by {@link AlignmentReaders}) of English-Foreign
+     * alignments, annotate English and project to foreign. Generates
+     * CoNLL style outputs for training NER.
+     *
+     * This doesn't annotate the text on the fly, but rather reads already annotated text.
+     *
+     **/
+    public void project(List<AlignmentReaders.Alignment> alignments, String outfile) throws Exception {
+        String docId = "NOTHING"; // arbitrary string identifier
+        String textId = "body"; // arbitrary string identifier
+
+        String TACVIEW = "NER_TAC";
+
+        HashMap<String, List<Constituent>> consmap = getconsmap();
 
         List<String> outlines = new ArrayList<>();
         List<String> debuglines = new ArrayList<>();
@@ -114,14 +118,12 @@ public class AlignmentProjectorTac {
             String viewName = TACVIEW; // example using ViewNames class constants
 
             String sourcesent = StringUtils.join(swAnnotate, " ");
+
+            // check consmap for presence of this sentence.
             List<Constituent> constituents = consmap.get(sourcesent);
-
-            if(sourcesent.contains("Kevorkian attends")){
-                System.out.println("EHLLO");
-            }
-
             if(constituents == null){
-                System.out.println("Skipping: " + sourcesent);
+                logger.error("Skipping: " + sourcesent);
+                // TODO: count up how many are missed.
                 continue;
             }
 

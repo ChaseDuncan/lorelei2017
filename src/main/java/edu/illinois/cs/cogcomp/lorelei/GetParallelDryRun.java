@@ -85,23 +85,6 @@ public class GetParallelDryRun {
         }
 
         /**
-         * Given the first child of a SEG branch, iterate through and
-         * gather the text in each of the tokens. Concatenate these with whitespace.
-         * @param firstChild the first child of a SEG branch in an LTF file.
-         * @return all tokens in this segment concatenated with a space
-         */
-        public static String getTokenizedLine(Node firstChild){
-            List<String> toks = new ArrayList<>();
-            while((firstChild = firstChild.getNextSibling()) != null){
-                if(firstChild.getNodeName().equals("TOKEN")){
-                    toks.add(firstChild.getTextContent());
-                }
-            }
-            return StringUtils.join(toks, " ");
-        }
-
-
-        /**
          * Given two files, this checks if they are the same (using ID), and then reads them, line by line into the
          * private static data structures.
          * @param eng
@@ -141,7 +124,7 @@ public class GetParallelDryRun {
                         allgood = false;
                         break;
                     }
-                    fline += getTokenizedLine(fseg.getFirstChild());
+                    fline += GetParallel.getTokenizedLine(fseg.getFirstChild());
                 }
 
                 for(String transseg : translationsegments.split("\\s+")){
@@ -152,7 +135,7 @@ public class GetParallelDryRun {
                         allgood = false;
                         break;
                     }
-                    eline += getTokenizedLine(eseg.getFirstChild());
+                    eline += GetParallel.getTokenizedLine(eseg.getFirstChild());
                 }
 
                 if(allgood) {

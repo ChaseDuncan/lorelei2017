@@ -45,7 +45,7 @@ public class AlignmentProjector {
     /**
      * Given a set of alignments (read by {@link AlignmentReaders}) of English-Foreign
      * alignments, annotate English and project to foreign. Generates
-     * CoNLL style outputs for training NER.
+     * CoNLL tyle outputs for training NER.
      **/
     public void project(List<AlignmentReaders.Alignment> alignments, String outfile) throws Exception {
         String docId = "NOTHING"; // arbitrary string identifier
@@ -71,10 +71,6 @@ public class AlignmentProjector {
             if(a.getID()%1000 == 0) {
                 logger.debug("Sent id: " + a.getID());
             }
-
-            //double normprob = Math.pow(a.prob, 1/a.sourcewords.size());
-
-            //if(normprob < 0.8) continue;
 
             // don't pass in NULL at the beginning...
             ArrayList<String> swAnnotate = new ArrayList<>(a.getSourcewords());
@@ -130,21 +126,19 @@ public class AlignmentProjector {
             }
 
             int wordIndex = 0;
-            String prevtag = "";
-            boolean beginNE = true;
-
+            String prevtag = "O";
             String tgtann = "";
-
 
             for(String tword : a.getTargetwords()){
                 String neTagString = "O";
                 if(tagmap.containsKey(wordIndex)){
-                    neTagString = ((beginNE) ? "B-" : "I-") + tagmap.get(wordIndex);
-                    beginNE = false;
+                    String currtag = tagmap.get(wordIndex);
+                    neTagString = ((currtag.equals(prevtag)) ? "I-" : "B-") + currtag;
+                    prevtag = currtag;
                 }
 
                 if(neTagString.equals("O")){
-                    beginNE = true;
+                    prevtag = "O";
                     tgtann += tword + " ";
                 }else{
                     tgtann += "[" + neTagString + " " + tword + "] ";

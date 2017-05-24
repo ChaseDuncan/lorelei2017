@@ -2,6 +2,7 @@ package edu.illinois.cs.cogcomp.lorelei;
 
 import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -211,7 +212,7 @@ public class ReflexReader {
                             label = annotationmap.get(id);
                         }
 
-                        conlllines.add(LoreleiReader.conllline(label, tokenid, word));
+                        conlllines.add(CoNLLNerReader.conllline(label, tokenid, word));
                     }
                 }
 

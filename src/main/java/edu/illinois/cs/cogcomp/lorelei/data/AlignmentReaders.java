@@ -96,7 +96,7 @@ public class AlignmentReaders {
             Pair<String, Double> p = new Pair<>(forn, score);
 
             if(!ret.containsKey(eng)){
-                ret.put(eng, new ArrayList<Pair<String, Double>>());
+                ret.put(eng, new ArrayList<>());
             }
             ret.get(eng).add(p);
         }

@@ -4,6 +4,7 @@ import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
 import edu.illinois.cs.cogcomp.lorelei.xml.*;
 
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
@@ -25,17 +26,6 @@ import java.util.List;
 public class LoreleiReader {
 
     private static Logger logger = LoggerFactory.getLogger( LoreleiReader.class );
-
-    /***
-     * Returns a conll formatted string given just the relevant elements.
-     * @param tag
-     * @param num
-     * @param word
-     * @return
-     */
-    public static String conllline(String tag, int num, String word){
-        return String.format("%s\t0\t%s\tx\tx\t%s\tx\tx\t0", tag, num, word);
-    }
 
     //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2015E70_BOLT_LRL_Hausa_Representative_Language_Pack_V1.2/";
     //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2016E29_BOLT_LRL_Uzbek_Representative_Language_Pack_V1.0/";
@@ -125,7 +115,7 @@ public class LoreleiReader {
             }
 
             List<String> conlllines = new ArrayList<>();
-            conlllines.add("O       0       0       O       -X-     -DOCSTART-      x       x       0");
+            conlllines.add("O\t0\t0\tO\t-X-\t-DOCSTART-\tx\tx\t0");
 
             // Get words from twitter file.
             String tweet = LineIO.slurp(fulldoc);
@@ -147,7 +137,7 @@ public class LoreleiReader {
                     label = annotationmap.get(start_char);
                 }
 
-                conlllines.add(conllline(label, 0, tok));
+                conlllines.add(CoNLLNerReader.conllline(label, 0, tok));
                 startind = start_char;
             }
 
@@ -239,7 +229,7 @@ public class LoreleiReader {
             Document ltf = SimpleXMLParser.getDocument(ltf_file, dtdpath);
 
             List<String> conlllines = new ArrayList<>();
-            conlllines.add("O       0       0       O       -X-     -DOCSTART-      x       x       0");
+            conlllines.add("O\t0\t0\tO\t-X-\t-DOCSTART-\tx\tx\t0");
 
             // each segment is a sentence.
             NodeList segs = ltf.getElementsByTagName("SEG");
@@ -269,7 +259,7 @@ public class LoreleiReader {
                             label = annotationmap.get(start_char);
                         }
 
-                        conlllines.add(conllline(label, tokenid, word));
+                        conlllines.add(CoNLLNerReader.conllline(label, tokenid, word));
                     }
                 }
 
