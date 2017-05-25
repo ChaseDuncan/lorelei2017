@@ -45,13 +45,13 @@ public class Munger {
     /**
      * Used to hold predictions from projection
      */
-    private static class Prediction{
+    private static class Prediction {
         int end;
         int start;
         String label;
         String word;
 
-        public Prediction(String word, String label, int start, int end){
+        public Prediction(String word, String label, int start, int end) {
             this.word = word;
             this.label = label;
             this.start = start;

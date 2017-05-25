@@ -27,6 +27,8 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader.conllline;
+
 /**
  *
  * This class is the runner that converts a parallel set of files into conll format by annotating
@@ -38,17 +40,6 @@ public class ParallelToConll {
     private static Logger logger = LoggerFactory.getLogger(ParallelToConll.class);
 
     private static String GPEVIEW = "GPE";
-
-    /**
-     * Convenience function to avoid having to think about this format all the time...
-     * @param tag
-     * @param num
-     * @param word
-     * @return
-     */
-    public static String conllline(String tag, int num, String word){
-        return String.format("%s\t0\t%s\tO\tO\t%s\tx\tx\t0", tag, num, word);
-    }
 
     /**
      * Converts a list of annotated TextAnnotation into ConLL format. Must have NER_CONLL view.
