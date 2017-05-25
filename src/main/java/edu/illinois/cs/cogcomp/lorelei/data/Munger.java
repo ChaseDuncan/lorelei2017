@@ -26,6 +26,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ *
+ * Probably not used. See AlignmentReader and AlignmentProjectors instead.
+ *
  * The point of this class is to run NER on the English data, and to get alignments.
  * Created by mayhew2 on 10/26/15.
  */

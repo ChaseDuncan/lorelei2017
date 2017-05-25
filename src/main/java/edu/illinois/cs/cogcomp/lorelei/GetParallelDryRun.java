@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
+ * This was created specifically for the LORELEI dry run in 2016.
+ *
  * Created by mayhew2 on 6/3/16.
  */
 @SuppressWarnings("Duplicates")
@@ -30,203 +32,198 @@ public class GetParallelDryRun {
      * Created by mayhew2 on 2/22/16.
      */
 
-        private static Logger logger = LoggerFactory.getLogger( GetParallelDryRun.class );
+    private static Logger logger = LoggerFactory.getLogger( GetParallelDryRun.class );
 
-     static String basedir = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/set0/";
+    static String basedir = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/set0/";
     ///shared/corpora/corporaWeb/lorelei/dryrun/LDC2016E56_LORELEI_Year1_Dry_Run_Evaluation_IL2_V1.1/set0/";
-        static String otherlang = "il3";
-        static String otherlang_short = "ug";
+    static String otherlang = "il3";
+    static String otherlang_short = "ug";
 
 
-        static String dtdpath = basedir + "dtds/";
-        static String transdir = "data/translation/";
+    static String dtdpath = basedir + "dtds/";
+    static String transdir = "data/translation/";
 
-        static String outdir = "/shared/corpora/ner/parallel/" + otherlang_short + "/";
+    static String outdir = "/shared/corpora/ner/parallel/" + otherlang_short + "/";
 
-        private static List<String> engsents = new ArrayList<>();
-        private static List<String> fornsents = new ArrayList<>();
-        private static List<String> fmap = new ArrayList<>();
+    private static List<String> engsents = new ArrayList<>();
+    private static List<String> fornsents = new ArrayList<>();
+    private static List<String> fmap = new ArrayList<>();
 
 
-        /**
-         * Given a path, this returns all files from that path+ltf, and filters social media.
-         * @param path
-         * @return
-         */
-        public static HashMap<String, File> readPath(String path){
+    /**
+     * Given a path, this returns all files from that path+ltf, and filters social media.
+     * @param path
+     * @return
+     */
+    public static HashMap<String, File> readPath(String path){
 
-            File f = new File(path);
+        File f = new File(path);
 
-            File[] flist = f.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return !name.startsWith("SN");
+        File[] flist = f.listFiles((dir, name) -> !name.startsWith("SN"));
+
+
+        HashMap<String, File> filemap = new HashMap<>();
+        for(File ff : flist){
+
+            String id = ff.getName().split("\\.")[0];
+
+            filemap.put(id, ff);
+        }
+
+
+        if(f.exists()) {
+            logger.debug("Length: " + flist.length);
+        }else{
+            System.out.printf("whoops, file " + f + " does not exist.");
+        }
+
+        return filemap;
+
+    }
+
+    /**
+     * Given two files, this checks if they are the same (using ID), and then reads them, line by line into the
+     * private static data structures.
+     * @param eng
+     * @param forn
+     * @return
+     */
+    public static void readParallel(File eng, File forn, SentenceAlignments sa) throws XMLException {
+        // perhaps do some kind of comparison of file names to make sure they are the same???
+        String engid = eng.getName().split("\\.")[0];
+        String fornid = forn.getName().split("\\.")[0];
+
+        logger.info("In read parallel... with " + eng);
+
+        Document engltf = SimpleXMLParser.getDocument(eng, ""); //dtdpath);
+        Document fornltf = SimpleXMLParser.getDocument(forn, ""); // dtdpath);
+        NodeList esegs = engltf.getElementsByTagName("SEG");
+        NodeList fsegs = fornltf.getElementsByTagName("SEG");
+
+        for(Pair<String, String> p : sa.alignments){
+
+            //logger.info("Reading alignments " + p);
+
+            // source refers to forn
+            String sourcesegments = p.getFirst();
+            // translation refers to English
+            String translationsegments = p.getSecond();
+
+            String eline = "";
+            String fline = "";
+            boolean allgood = true;
+
+            for(String sourceseg : sourcesegments.split("\\s+")){
+                sourceseg = sourceseg.replace("segment-", "");
+                int ss = Integer.parseInt(sourceseg);
+                Node fseg = fsegs.item(ss);
+                if(fseg == null){
+                    allgood = false;
+                    break;
                 }
-            });
-
-
-            HashMap<String, File> filemap = new HashMap<>();
-            for(File ff : flist){
-
-                String id = ff.getName().split("\\.")[0];
-
-                filemap.put(id, ff);
+                fline += GetParallel.getTokenizedLine(fseg.getFirstChild());
             }
 
-
-            if(f.exists()) {
-                logger.debug("Length: " + flist.length);
-            }else{
-                System.out.printf("whoops, file " + f + " does not exist.");
+            for(String transseg : translationsegments.split("\\s+")){
+                transseg = transseg.replace("segment-", "");
+                int ts = Integer.parseInt(transseg);
+                Node eseg = esegs.item(ts);
+                if(eseg == null){
+                    allgood = false;
+                    break;
+                }
+                eline += GetParallel.getTokenizedLine(eseg.getFirstChild());
             }
 
-            return filemap;
+            if(allgood) {
+                engsents.add(eline);
+                fornsents.add(fline);
+                fmap.add(sa.alignfile + ":" + translationsegments + ":" + sourcesegments);
+            }
+
+            //
 
         }
 
-        /**
-         * Given two files, this checks if they are the same (using ID), and then reads them, line by line into the
-         * private static data structures.
-         * @param eng
-         * @param forn
-         * @return
-         */
-        public static void readParallel(File eng, File forn, SentenceAlignments sa) throws XMLException {
-            // perhaps do some kind of comparison of file names to make sure they are the same???
-            String engid = eng.getName().split("\\.")[0];
-            String fornid = forn.getName().split("\\.")[0];
+    }
 
-            logger.info("In read parallel... with " + eng);
+    /**
+     * Walk directories, with certain heuristics.
+     * @param path
+     */
+    public static void walk(String path) throws XMLException,IOException {
 
-            Document engltf = SimpleXMLParser.getDocument(eng, ""); //dtdpath);
-            Document fornltf = SimpleXMLParser.getDocument(forn, ""); // dtdpath);
-            NodeList esegs = engltf.getElementsByTagName("SEG");
-            NodeList fsegs = fornltf.getElementsByTagName("SEG");
+        File root = new File( path );
+        File[] list = root.listFiles();
 
-            for(Pair<String, String> p : sa.alignments){
+        if (list == null) return;
 
-                //logger.info("Reading alignments " + p);
-
-                // source refers to forn
-                String sourcesegments = p.getFirst();
-                // translation refers to English
-                String translationsegments = p.getSecond();
-
-                String eline = "";
-                String fline = "";
-                boolean allgood = true;
-
-                for(String sourceseg : sourcesegments.split("\\s+")){
-                    sourceseg = sourceseg.replace("segment-", "");
-                    int ss = Integer.parseInt(sourceseg);
-                    Node fseg = fsegs.item(ss);
-                    if(fseg == null){
-                        allgood = false;
-                        break;
-                    }
-                    fline += GetParallel.getTokenizedLine(fseg.getFirstChild());
+        for ( File f : list ) {
+            if ( f.isDirectory() ) {
+                File[] locallist = f.listFiles();
+                HashMap<String, File> names = new HashMap<>();
+                for(File localf : locallist){
+                    names.put(localf.getName(), localf);
                 }
 
-                for(String transseg : translationsegments.split("\\s+")){
-                    transseg = transseg.replace("segment-", "");
-                    int ts = Integer.parseInt(transseg);
-                    Node eseg = esegs.item(ts);
-                    if(eseg == null){
-                        allgood = false;
-                        break;
-                    }
-                    eline += GetParallel.getTokenizedLine(eseg.getFirstChild());
-                }
-
-                if(allgood) {
-                    engsents.add(eline);
-                    fornsents.add(fline);
-                    fmap.add(sa.alignfile + ":" + translationsegments + ":" + sourcesegments);
-                }
-
-                //
-
-            }
-
-        }
-
-        /**
-         * Walk directories, with certain heuristics.
-         * @param path
-         */
-        public static void walk(String path) throws XMLException,IOException {
-
-            File root = new File( path );
-            File[] list = root.listFiles();
-
-            if (list == null) return;
-
-            for ( File f : list ) {
-                if ( f.isDirectory() ) {
-                    File[] locallist = f.listFiles();
-                    HashMap<String, File> names = new HashMap<>();
-                    for(File localf : locallist){
-                        names.put(localf.getName(), localf);
-                    }
-
-                    // if this contains just eng/forn directories, good.
-                    if(locallist.length == 3 && names.containsKey("eng") && names.containsKey("sentence_alignment")){
-                        logger.info("Reading: " + f);
+                // if this contains just eng/forn directories, good.
+                if(locallist.length == 3 && names.containsKey("eng") && names.containsKey("sentence_alignment")){
+                    logger.info("Reading: " + f);
 
 
-                        // this returns all files (except twitter files).
-                        HashMap<String, File> eng = readPath(names.get("eng").getAbsolutePath() + "/ltf/");
-                        HashMap<String, File> forn = readPath(names.get(otherlang).getAbsolutePath() + "/ltf/");
-                        HashMap<String, File> sentence_alignment = readPath(names.get("sentence_alignment").getAbsolutePath());
+                    // this returns all files (except twitter files).
+                    HashMap<String, File> eng = readPath(names.get("eng").getAbsolutePath() + "/ltf/");
+                    HashMap<String, File> forn = readPath(names.get(otherlang).getAbsolutePath() + "/ltf/");
+                    HashMap<String, File> sentence_alignment = readPath(names.get("sentence_alignment").getAbsolutePath());
 
-                        int i =1;
+                    int i =1;
 
-                        for (String safilename : sentence_alignment.keySet()) {
+                    for (String safilename : sentence_alignment.keySet()) {
 
-                            // intended to keep only the Koran data.
-                            if(!safilename.contains("G0040E9WQ")) continue;
+                        // intended to keep only the Koran data.
+                        if(!safilename.contains("G0040E9WQ")) continue;
 
 
-                            if(i%100 == 0) {
-                                System.out.println("on " + i + " out of " + sentence_alignment.size());
-                            }
-                            i++;
-                            File safile = sentence_alignment.get(safilename);
-
-                            // from here, I should be able to get the corresponding file ids
-                            // and the map of segment ids.
-                            SentenceAlignments sa = new SentenceAlignments(safile);
-
-                            readParallel(eng.get(sa.sourceid), forn.get(sa.translationid), sa);
+                        if(i%100 == 0) {
+                            System.out.println("on " + i + " out of " + sentence_alignment.size());
                         }
+                        i++;
+                        File safile = sentence_alignment.get(safilename);
 
-                        logger.debug("successfully read files.");
-                        //}
+                        // from here, I should be able to get the corresponding file ids
+                        // and the map of segment ids.
+                        SentenceAlignments sa = new SentenceAlignments(safile);
 
-                    }else {
-                        // otherwise, continue looking.
-                        walk(f.getAbsolutePath());
+                        readParallel(eng.get(sa.sourceid), forn.get(sa.translationid), sa);
                     }
+
+                    logger.debug("successfully read files.");
+                    //}
+
+                }else {
+                    // otherwise, continue looking.
+                    walk(f.getAbsolutePath());
                 }
             }
-
         }
 
-        public static void main(String[] args) throws XMLException, IOException {
+    }
 
-            walk(basedir + transdir);
+    public static void main(String[] args) throws XMLException, IOException {
 
-            System.out.println(engsents.size());
-            System.out.println(fornsents.size());
+        walk(basedir + transdir);
 
-            LineIO.write(outdir + "eng.txt", engsents);
-            LineIO.write(outdir + otherlang_short + ".txt", fornsents);
-            LineIO.write(outdir + "map.txt", fmap);
+        System.out.println(engsents.size());
+        System.out.println(fornsents.size());
+
+        LineIO.write(outdir + "eng.txt", engsents);
+        LineIO.write(outdir + otherlang_short + ".txt", fornsents);
+        LineIO.write(outdir + "map.txt", fmap);
 
 
 
 
-        }
+    }
 
 
     private static class SentenceAlignments {

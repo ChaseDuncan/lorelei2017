@@ -17,9 +17,6 @@ import static weka.core.converters.ConverterUtils.DataSource.read;
 
 /**
  *
- *
- * TODO: move this to illinois-corpus-readers
- *
  * Created by mayhew2 on 4/18/16.
  */
 public class AlignmentReaders {
@@ -189,6 +186,13 @@ public class AlignmentReaders {
     }
 
 
+    /**
+     * Read giza++ alignments.
+     * @param fname
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     public static List<Alignment> readGizaAlignments(String fname) throws FileNotFoundException,IOException {
         // takes an alignment file.
 
