@@ -84,12 +84,7 @@ public class GetParallel {
 
         File f = new File(path + "/ltf");
 
-        File[] flist = f.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return !name.startsWith("SN");
-            }
-        });
+        File[] flist = f.listFiles((dir, name) -> !name.startsWith("SN"));
 
         if(f.exists()) {
             logger.debug("Length: " + flist.length);

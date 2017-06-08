@@ -26,6 +26,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ *
+ * Probably not used. See AlignmentReader and AlignmentProjectors instead.
+ *
  * The point of this class is to run NER on the English data, and to get alignments.
  * Created by mayhew2 on 10/26/15.
  */
@@ -42,13 +45,13 @@ public class Munger {
     /**
      * Used to hold predictions from projection
      */
-    private static class Prediction{
+    private static class Prediction {
         int end;
         int start;
         String label;
         String word;
 
-        public Prediction(String word, String label, int start, int end){
+        public Prediction(String word, String label, int start, int end) {
             this.word = word;
             this.label = label;
             this.start = start;

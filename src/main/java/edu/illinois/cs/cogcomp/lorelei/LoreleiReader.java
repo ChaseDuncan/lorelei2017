@@ -4,6 +4,8 @@ import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
 import edu.illinois.cs.cogcomp.lorelei.xml.*;
 
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader;
+import org.apache.log4j.BasicConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
@@ -17,7 +19,7 @@ import java.util.List;
 
 
 /**
- * This converts LAF format into CONLL format.
+ * This converts LAF format into CONLL format. Only used for annotated entity files (not present in surprise languages)
  *
  * Created by mayhew2 on 2/15/16.
  */
@@ -25,32 +27,6 @@ import java.util.List;
 public class LoreleiReader {
 
     private static Logger logger = LoggerFactory.getLogger( LoreleiReader.class );
-
-    /***
-     * Returns a conll formatted string given just the relevant elements.
-     * @param tag
-     * @param num
-     * @param word
-     * @return
-     */
-    public static String conllline(String tag, int num, String word){
-        return String.format("%s\t0\t%s\tx\tx\t%s\tx\tx\t0", tag, num, word);
-    }
-
-    //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2015E70_BOLT_LRL_Hausa_Representative_Language_Pack_V1.2/";
-    //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2016E29_BOLT_LRL_Uzbek_Representative_Language_Pack_V1.0/";
-    //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2014E115_BOLT_LRL_Turkish_Representative_Language_Pack_V2.2/";
-    //static String basedir = "/shared/corpora/corporaWeb/lorelei/20150908-kickoff-release/BOLT_Hausa_RL_LDC2015E70_V1.1/";
-    //static String basedir = "/shared/corpora/corporaWeb/lorelei/uzbek/";
-    static String basedir = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/setE/";
-    static String origbasedir = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/setE/";
-
-    static String outdir = "/shared/corpora/ner/lorelei/ug/All/";
-
-    static String nerdir =  basedir + "data/annotation/entity/";
-    static String ltfdir = origbasedir + "data/monolingual_text/ltf/";
-    static String twdir = basedir + "tools/twitter-processing/twitter-data/";
-    static String dtdpath = "/shared/corpora/corporaWeb/lorelei/evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/dtds/";
 
     private static List<String> excludetags = Arrays.asList("TTL", "NAN", "TIME");
 
@@ -60,7 +36,7 @@ public class LoreleiReader {
      * @throws IOException
      * @throws XMLException
      */
-    public static void getTwitter(String outdir) throws IOException, XMLException {
+    public static void getTwitter(String nerdir, String dtdpath, String twdir, String outdir) throws IOException, XMLException {
         logger.debug("laf directory: " + nerdir);
         String[] laf_files = (new File(nerdir)).list();
 
@@ -125,7 +101,7 @@ public class LoreleiReader {
             }
 
             List<String> conlllines = new ArrayList<>();
-            conlllines.add("O       0       0       O       -X-     -DOCSTART-      x       x       0");
+            conlllines.add("O\t0\t0\tO\t-X-\t-DOCSTART-\tx\tx\t0");
 
             // Get words from twitter file.
             String tweet = LineIO.slurp(fulldoc);
@@ -147,7 +123,7 @@ public class LoreleiReader {
                     label = annotationmap.get(start_char);
                 }
 
-                conlllines.add(conllline(label, 0, tok));
+                conlllines.add(CoNLLNerReader.conllline(label, 0, tok));
                 startind = start_char;
             }
 
@@ -164,7 +140,7 @@ public class LoreleiReader {
      * @throws XMLException
      * @throws IOException
      */
-    public static void readFiles(String outdir) throws XMLException, IOException {
+    public static void readFiles(String nerdir, String dtdpath, String ltfdir, String outdir) throws XMLException, IOException {
         logger.debug("laf directory: " + nerdir);
         String[] laf_files = (new File(nerdir)).list();
 
@@ -239,7 +215,7 @@ public class LoreleiReader {
             Document ltf = SimpleXMLParser.getDocument(ltf_file, dtdpath);
 
             List<String> conlllines = new ArrayList<>();
-            conlllines.add("O       0       0       O       -X-     -DOCSTART-      x       x       0");
+            conlllines.add("O\t0\t0\tO\t-X-\t-DOCSTART-\tx\tx\t0");
 
             // each segment is a sentence.
             NodeList segs = ltf.getElementsByTagName("SEG");
@@ -269,7 +245,7 @@ public class LoreleiReader {
                             label = annotationmap.get(start_char);
                         }
 
-                        conlllines.add(conllline(label, tokenid, word));
+                        conlllines.add(CoNLLNerReader.conllline(label, tokenid, word));
                     }
                 }
 
@@ -286,10 +262,37 @@ public class LoreleiReader {
     }
 
     public static void main(String[] args) throws XMLException, IOException {
-        //BasicConfigurator.configure();
-        readFiles(outdir);
-//        getTwitter(outdir);
-;
+        BasicConfigurator.configure();
+
+        String loreleidir = "/shared/corpora/corporaWeb/lorelei/";
+
+        //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2015E70_BOLT_LRL_Hausa_Representative_Language_Pack_V1.2/";
+        //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2016E29_BOLT_LRL_Uzbek_Representative_Language_Pack_V1.0/";
+        //static String basedir = "/shared/corpora/corporaWeb/lorelei/LDC2014E115_BOLT_LRL_Turkish_Representative_Language_Pack_V2.2/";
+        //static String basedir = "/shared/corpora/corporaWeb/lorelei/20150908-kickoff-release/BOLT_Hausa_RL_LDC2015E70_V1.1/";
+        //static String basedir = "/shared/corpora/corporaWeb/lorelei/uzbek/";
+
+        String basedir = loreleidir + "evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/setE/";
+        String origbasedir = loreleidir + "evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/setE/";
+
+
+
+        // This folder contains LAF files.
+        String nerdir =  basedir + "data/annotation/entity/";
+
+        // This folder contains LTF files, corresponding to the LAF files in nerdir.
+        String ltfdir = origbasedir + "data/monolingual_text/ltf/";
+
+        String twdir = basedir + "tools/twitter-processing/twitter-data/";
+
+        String dtdpath = loreleidir + "evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/dtds/";
+
+        // Directory where conll output files will be written.
+        String outdir = "/shared/corpora/ner/lorelei/ug/All/";
+
+        readFiles(nerdir, dtdpath, ltfdir, outdir);
+        //getTwitter(nerdir, dtdpath, twdir, outdir);
+
     }
 
 }

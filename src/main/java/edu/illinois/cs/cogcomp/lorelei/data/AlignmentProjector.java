@@ -39,42 +39,102 @@ public class AlignmentProjector {
 
     private static Logger logger = LoggerFactory.getLogger( AlignmentProjector.class );
 
+    private final String TACVIEW = ViewNames.NER_CONLL;
 
     private static String mynerconfig = "config/tac.config";
+
+    public List<Constituent> getconstituents(SimpleCachingPipeline pipeline, List<String[]> toksent){
+        TextAnnotation ta = BasicTextAnnotationBuilder.createTextAnnotationFromTokens(toksent);
+        HashSet<String> viewsToAnnotate = new HashSet<>();
+        viewsToAnnotate.add(TACVIEW);
+
+        // shouldn't need to do this...
+        try {
+            //ta = pipeline.addViewsAndCache(ta, viewsToAnnotate);
+            ta = pipeline.annotateTextAnnotation(ta, false);
+        }catch (AnnotatorException e){
+            logger.error(e.getStackTrace().toString());
+        }
+
+        String viewName = TACVIEW; // example using ViewNames class constants
+
+        View view = ta.getView( viewName );
+        List<Constituent> constituents = view.getConstituents();
+        return constituents;
+    }
+
+
+    /**
+     * Factored out.
+     * @return
+     */
+    public HashMap<String, List<Constituent>> getconsmap(){
+        HashMap<String, List<Constituent>> consmap = new HashMap<>();
+
+        CoNLLNerReader cnr = new CoNLLNerReader("/shared/corpora/ner/wikifier-features/en/train-camera3-misc/");
+
+        TextAnnotation ta;
+        while(cnr.hasNext()){
+            ta = cnr.next();
+
+            System.out.println(ta.getId());
+
+            View sents = ta.getView(ViewNames.SENTENCE);
+            View ner = ta.getView(ViewNames.NER_CONLL);
+
+            for(Constituent sent : sents.getConstituents()) {
+
+                List<Constituent> oldcons = ner.getConstituentsCovering(sent);
+
+                List<Constituent> nercons = new ArrayList<>();
+
+                int offset = sent.getStartSpan();
+
+                for(Constituent c : oldcons){
+                    Constituent newc = new Constituent(c.getLabel(), c.getViewName(), c.getTextAnnotation(), c.getStartSpan()-offset, c.getEndSpan()-offset);
+                    nercons.add(newc);
+                }
+                String stringsent = sent.getTokenizedSurfaceForm().trim();
+
+                consmap.put(stringsent, nercons);
+            }
+        }
+        return consmap;
+    }
+
 
     /**
      * Given a set of alignments (read by {@link AlignmentReaders}) of English-Foreign
      * alignments, annotate English and project to foreign. Generates
-     * CoNLL style outputs for training NER.
+     * CoNLL tyle outputs for training NER.
      **/
     public void project(List<AlignmentReaders.Alignment> alignments, String outfile) throws Exception {
         String docId = "NOTHING"; // arbitrary string identifier
         String textId = "body"; // arbitrary string identifier
 
-//        String TACVIEW = "NER_TAC";
-        String TACVIEW = ViewNames.NER_CONLL;
-
-        ResourceManager rm = new ResourceManager( "config/pipeline-config.properties" );
-        SimpleCachingPipeline pipeline = (SimpleCachingPipeline) IllinoisPipelineFactory.buildPipeline( rm );
-
-//        IllinoisNerHandler inh = new IllinoisNerHandler(new ResourceManager("config/tac.config"), TACVIEW);
-//        pipeline.addAnnotator(inh);
-//        pipeline.setForceUpdate(true);
 
         List<String> outlines = new ArrayList<>();
         List<String> debuglines = new ArrayList<>();
         outlines.add("O\t0\t0\tO\t-X-\t-DOCSTART-\tx\tx\t0");
         outlines.add("");
 
+        boolean preannotate = true;
+
+        // TODO: This is an ugly way of doing this.
+        SimpleCachingPipeline pipeline = null;
+        HashMap<String, List<Constituent>> consmap = null;
+        if(preannotate) {
+            consmap = getconsmap();
+        }else{
+            ResourceManager rm = new ResourceManager( "config/pipeline-config.properties" );
+            pipeline = (SimpleCachingPipeline) IllinoisPipelineFactory.buildPipeline( rm );
+        }
+
         for(AlignmentReaders.Alignment a : alignments) {
 
             if(a.getID()%1000 == 0) {
                 logger.debug("Sent id: " + a.getID());
             }
-
-            //double normprob = Math.pow(a.prob, 1/a.sourcewords.size());
-
-            //if(normprob < 0.8) continue;
 
             // don't pass in NULL at the beginning...
             ArrayList<String> swAnnotate = new ArrayList<>(a.getSourcewords());
@@ -84,29 +144,27 @@ public class AlignmentProjector {
             List<String[]> toksent = new ArrayList<>();
             toksent.add(arr);
 
-            TextAnnotation ta = BasicTextAnnotationBuilder.createTextAnnotationFromTokens(toksent);
-            HashSet<String> viewsToAnnotate = new HashSet<>();
-            viewsToAnnotate.add(TACVIEW);
+            String sourcesent = StringUtils.join(swAnnotate, " ");
 
-            // shouldn't need to do this...
-            try {
-                //ta = pipeline.addViewsAndCache(ta, viewsToAnnotate);
-                ta = pipeline.annotateTextAnnotation(ta, false);
-            }catch (AnnotatorException e){
-                logger.error(e.getStackTrace().toString());
+            List<Constituent> constituents;
+            if(preannotate) {
+                 constituents = consmap.get(sourcesent);
+            }else{
+                constituents = getconstituents(pipeline, toksent);
             }
 
-            String viewName = TACVIEW; // example using ViewNames class constants
-
-            View view = ta.getView( viewName );
-            List<Constituent> constituents = view.getConstituents();
+            if(constituents == null){
+                logger.error("Skipping: " + sourcesent);
+                // TODO: count up how many are missed.
+                continue;
+            }
 
             debuglines.add(a.getSourcewords().toString());
             
             // This maps from targetword index (0-based) to tag.
             HashMap<Integer, String> tagmap = new HashMap<>();
 
-            for (Constituent c : view.getConstituents()) {
+            for (Constituent c : constituents) {
                 // The 1 is added to make up for the NULL token that was removed when we annotate.
                 // getStartSpan refers to tokens in the constituent (NOT chars)
                 int start = c.getStartSpan() + 1;
@@ -130,21 +188,19 @@ public class AlignmentProjector {
             }
 
             int wordIndex = 0;
-            String prevtag = "";
-            boolean beginNE = true;
-
+            String prevtag = "O";
             String tgtann = "";
-
 
             for(String tword : a.getTargetwords()){
                 String neTagString = "O";
                 if(tagmap.containsKey(wordIndex)){
-                    neTagString = ((beginNE) ? "B-" : "I-") + tagmap.get(wordIndex);
-                    beginNE = false;
+                    String currtag = tagmap.get(wordIndex);
+                    neTagString = ((currtag.equals(prevtag)) ? "I-" : "B-") + currtag;
+                    prevtag = currtag;
                 }
 
                 if(neTagString.equals("O")){
-                    beginNE = true;
+                    prevtag = "O";
                     tgtann += tword + " ";
                 }else{
                     tgtann += "[" + neTagString + " " + tword + "] ";

@@ -26,20 +26,13 @@ import java.util.regex.Pattern;
 /**
  * The point of this class is to run NER on the English data, and to get alignments.
  *
- * This has been edited heavily to match with
+ * This has been edited heavily to match with ???
  *
  * Created by mayhew2 on 10/26/15.
  */
 public class BibleMunger {
 
-    /**
-     * Change this one, not the others.
-     */
-    //public static final String langfolder = "Chinese_English/";
-
     public static final String basedir = "/shared/experiments/mayhew2/bibles/";
-    //public static final String outfile = basedir + langfolder + "pairs.txt";
-
 
     public static void main(String[] args) throws Exception {
         ResourceManager rm = new CuratorConfigurator().getDefaultConfig();
@@ -48,18 +41,9 @@ public class BibleMunger {
         // I think this matches the giza++ output format...
         Pattern pattern = Pattern.compile("(([\\w\\p{Punct}]*)\\s*\\(\\{([^}]*)\\}\\))");
 
-        Pattern sentpair = Pattern.compile("# Sentence pair \\((\\d+)\\)");
-
         File bd = new File(basedir);
 
-        Path bdpath = bd.toPath();
-
-        String[] langfolders = bd.list(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.contains("_English");
-            }
-        });
+        String[] langfolders = bd.list((dir, name) -> name.contains("_English"));
 
         for(String langfolder : langfolders) {
 
@@ -77,12 +61,7 @@ public class BibleMunger {
             System.out.println(langfolder);
 
             System.out.println(d);
-            String[] flist = d.list(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.contains("17.mayhew2.A3.final");
-                }
-            });
+            String[] flist = d.list((dir, name) -> name.contains("17.mayhew2.A3.final"));
 
             if (flist.length != 1) {
                 System.err.println("OOOPS. Can't find the file I want in " + langfolder);
@@ -91,6 +70,7 @@ public class BibleMunger {
 
             String alignfilename = flist[0];
 
+            // TODO: shouldn't this use the AlignmentReaders code?
             ArrayList<String> lines = LineIO.read(basedir + langfolder + alignfilename);
             for (int i = 0; i < lines.size() - 3; i += 3) {
                 String comment = lines.get(i);

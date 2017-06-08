@@ -21,6 +21,11 @@ import java.io.IOException;
 import java.util.*;
 
 /**
+ * TODO: rewrite this to be a little less specific...
+ *
+ * TODO: consider using Lucene as the backend.
+ *
+ *
  * Created by mayhew2 on 7/7/16.
  */
 public class UgDictionary {
