@@ -13,6 +13,7 @@ import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
 import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.document.*;
+import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
@@ -116,9 +117,8 @@ public class KBStringMatcher {
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // How to query with a lat/long.
-        TopFieldDocs tfd = LatLonPoint.nearest(searcher, "latlon", 40.1, -88.2, 5);
+        TopFieldDocs tfd = LatLonPoint.nearest(searcher, "latlon", 40.1136, -88.2248, 10);
         ScoreDoc[] hits = tfd.scoreDocs;
-
 
         for(int i=0; i<hits.length; ++i) {
             int docId = hits[i].doc;
@@ -134,7 +134,7 @@ public class KBStringMatcher {
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
 
-        String s = "q";
+        String s = "";
         while (!s.equalsIgnoreCase("q")) {
             try {
                 System.out.println("Enter the search query (q=quit): ");

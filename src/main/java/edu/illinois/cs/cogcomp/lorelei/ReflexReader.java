@@ -18,8 +18,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import static edu.illinois.cs.cogcomp.lorelei.LoreleiReader.nerdir;
-
 /**
  * This is an almost duplicate of {@link LoreleiReader}. Some of the REFLEX data packages
  * needed different formatting, so instead of making error-prone conditional changes to LoreleiReader,
