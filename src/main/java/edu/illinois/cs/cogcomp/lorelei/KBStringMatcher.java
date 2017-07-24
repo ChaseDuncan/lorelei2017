@@ -6,35 +6,38 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader;
+import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
-import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.document.*;
-import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.*;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by mayhew2 on 6/8/17.
  */
 public class KBStringMatcher {
-    public static void main(String[] args) throws IOException {
-        String dir = "/shared/corpora/corporaWeb/lorelei/data/kb/LDC2017E19_LORELEI_EDL_Knowledge_Base_V0.1/";
-        String kbpath = dir + "data/entities.tab";
+    public static void main(String[] args) throws IOException, ParseException {
+        //String dir = "/shared/corpora/corporaWeb/lorelei/data/kb/LDC2017E19_LORELEI_EDL_Knowledge_Base_V0.1/data/";
+        String dir = "./";
+        String kbpath = dir + "allCountriesHeader.txt";
 
-        String indexpath = "/tmp/kb-lucene/";
+        String indexpath = "/tmp/kb-full-lucene/";
 
-        //buildindex(kbpath, indexpath);
-        testindex(indexpath);
+        buildindex(kbpath, indexpath);
+        //testindex(indexpath);
+
+        //stringmatcher("ensemble3.tab.uly.short", indexpath);
+
     }
 
     private static Analyzer analyzer = new Analyzer() {
@@ -53,47 +56,49 @@ public class KBStringMatcher {
 
         IndexWriter writer = new IndexWriter(dir, config);
 
-        List<String> kblines = LineIO.read(kbpath);
-
-        String header = kblines.get(0);
-        String[] headerfields = header.split("\t");
-
         int j = 0;
-        for(String line : kblines){
-
-            if(j % 1000 == 0){
-                System.out.println("Progress: " + j / (float) kblines.size());
-            }
-            j++;
-
-            if(line.equals(header)) continue;
-
-            String[] sline = line.split("\t");
-
-            Document d = new Document();
-
-            for(int i = 0; i < sline.length; i++){
-                String field = headerfields[i];
-                String value = sline[i];
-
-                //                    StringReader sr = new StringReader(value);
-                StringField sf = new StringField(field, value, Field.Store.YES);
-                d.add(sf);
-
-                Reader reader = new StringReader(value);
-                TextField tf = new TextField(field, reader);
-                d.add(tf);
-
-                try {
-                    if (field.equals("latitude")) {
-                        double lat = Double.parseDouble(value);
-                        double lon = Double.parseDouble(sline[i + 1]);
-                        LatLonPoint llp = new LatLonPoint("latlon", lat, lon);
-                        d.add(llp);
-                    }
-                }catch (NumberFormatException e){
-                    // just don't do anything...
+        String[] headerfields = new String[10]; // just pick a random num...
+        try (BufferedReader br = new BufferedReader(new FileReader(kbpath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                // process the line.
+                if(j == 0){
+                    headerfields = line.split("\t");
+                    j++;
+                    continue;
                 }
+
+                if (j % 1000 == 0) {
+                    System.out.println("Progress: " + j);
+                }
+                j++;
+
+                String[] sline = line.split("\t");
+
+                Document d = new Document();
+
+                for (int i = 0; i < sline.length; i++) {
+                    String field = headerfields[i];
+                    String value = sline[i];
+
+                    //                    StringReader sr = new StringReader(value);
+                    StringField sf = new StringField(field, value, Field.Store.YES);
+                    d.add(sf);
+
+                    Reader reader = new StringReader(value);
+                    TextField tf = new TextField(field, reader);
+                    d.add(tf);
+
+                    try {
+                        if (field.equals("latitude")) {
+                            double lat = Double.parseDouble(value);
+                            double lon = Double.parseDouble(sline[i + 1]);
+                            LatLonPoint llp = new LatLonPoint("latlon", lat, lon);
+                            d.add(llp);
+                        }
+                    } catch (NumberFormatException e) {
+                        // just don't do anything...
+                    }
 
 
 //                if(field.equals("entityid")){
@@ -101,13 +106,72 @@ public class KBStringMatcher {
 //                    d.add(id);
 //                }else {
 //                }
-            }
+                }
 
-            writer.addDocument(d);
+                writer.addDocument(d);
+            }
         }
 
         writer.close();
     }
+
+
+    public static void stringmatcherconll(String conllfolder){
+
+        CoNLLNerReader cnr;
+        TextAnnotation ta;
+        for(String fname : (new File(conllfolder)).list()){
+            cnr = new CoNLLNerReader(fname);
+            ta = cnr.next();
+
+            View ner = ta.getView(ViewNames.NER_CONLL);
+            for(Constituent c : ner.getConstituents()){
+                // now we will string match all constituents against a KB.
+            }
+
+        }
+    }
+
+    /**
+     * This takes a submission file and links all the entries.
+     * @param subfile
+     */
+    public static void stringmatcher(String subfile, String indexdir) throws IOException, ParseException {
+
+        List<String> lines = LineIO.read(subfile);
+        ArrayList<String> outlines = new ArrayList<>();
+
+        double i = 0;
+
+        for(String line : lines){
+            if(i % 10 == 0){
+                System.out.println("Progress: " + (i / lines.size()));
+            }
+
+            i++;
+
+            String[] sline = line.split("\t");
+
+            String mention = sline[2];
+            System.out.println(mention);
+
+            String[] cands = getcands(mention, indexdir);
+
+            if(cands.length > 0){
+                // this should really be an ID, but for now, it is just this!
+                sline[4] = cands[0];
+            }else{
+                sline[4] = "null";
+            }
+
+            outlines.add(StringUtils.join(sline, "\t"));
+
+        }
+
+        LineIO.write(subfile + ".linked", outlines);
+
+    }
+
 
     public static void getnearest(IndexSearcher searcher, double lat, double lon) throws IOException {
         // How to query with a lat/long.
@@ -124,6 +188,35 @@ public class KBStringMatcher {
             System.out.println((i + 1) + ". " + d.get("entityid") + ", " + d.get("asciiname") + ", dist (m)=" + dist);
         }
     }
+
+    public static String[] getcands(String mention, String indexdir) throws IOException {
+        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
+        IndexSearcher searcher = new IndexSearcher(reader);
+
+        Query q;
+        try {
+            q = new QueryParser("asciiname", analyzer).parse(mention);
+        } catch (ParseException e) {
+            String[] results = new String[1];
+            results[0] = "null";
+            return results;
+        }
+
+        TopScoreDocCollector collector = TopScoreDocCollector.create(5);
+        searcher.search(q, collector);
+        ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+        String[] results = new String[hits.length];
+
+        for (int i = 0; i < hits.length; ++i) {
+            int docId = hits[i].doc;
+            Document d = searcher.doc(docId);
+            results[i] = d.get("asciiname");
+        }
+
+        return results;
+    }
+
 
     public static void testindex(String indexdir) throws IOException {
         //=========================================================
