@@ -1,11 +1,11 @@
 package edu.illinois.cs.cogcomp.lorelei;
 
-import com.sun.org.apache.xerces.internal.dom.DeferredElementImpl;
 import edu.illinois.cs.cogcomp.core.io.LineIO;
 import edu.illinois.cs.cogcomp.lorelei.xml.*;
 
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.CoNLLNerReader;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.xerces.dom.DeferredElementImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
@@ -30,6 +30,10 @@ public class LoreleiReader {
 
     private static List<String> excludetags = Arrays.asList("TTL", "NAN", "TIME");
 
+    public static String makeline(String label, int start_offset, int end_offset, int ind, String word){
+        return label+"\t"+ind+"\t"+start_offset+"\t"+end_offset+"\tO\t"+word+"\tx\tx\t0";
+    }
+    
     /**
      * This creates a CONLL formatted file from laf formatted twitter data.
      * @param outdir directory to write output file to
@@ -122,6 +126,7 @@ public class LoreleiReader {
                 if(annotationmap.containsKey(start_char)){
                     label = annotationmap.get(start_char);
                 }
+
 
                 conlllines.add(CoNLLNerReader.conllline(label, 0, tok));
                 startind = start_char;
@@ -244,8 +249,8 @@ public class LoreleiReader {
                         if(annotationmap.containsKey(start_char)){
                             label = annotationmap.get(start_char);
                         }
-
-                        conlllines.add(CoNLLNerReader.conllline(label, tokenid, word));
+                        String outline = makeline(label, start_char, end_char, tokenid, word);
+                        conlllines.add(outline);
                     }
                 }
 
@@ -272,26 +277,27 @@ public class LoreleiReader {
         //static String basedir = "/shared/corpora/corporaWeb/lorelei/20150908-kickoff-release/BOLT_Hausa_RL_LDC2015E70_V1.1/";
         //static String basedir = "/shared/corpora/corporaWeb/lorelei/uzbek/";
 
-        String basedir = loreleidir + "evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/setE/";
-        String origbasedir = loreleidir + "evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/setE/";
+//        String basedir = loreleidir + "evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/setE/";
+//        String origbasedir = loreleidir + "evaluation-20160705/LDC2016E57_LORELEI_IL3_Incident_Language_Pack_for_Year_1_Eval/setE/";
 
-
+        String monolingualbasedir = "/shared/corpora/corporaWeb/lorelei/data/LDC2016E86_LORELEI_Amharic_Representative_Language_Pack_Monolingual_Text_V1.1/";
+        String basedir = "/shared/corpora/corporaWeb/lorelei/data/LDC2016E87_LORELEI_Amharic_Representative_Language_Pack_Translation_Annotation_Grammar_Lexicon_and_Tools_V2.0/";
 
         // This folder contains LAF files.
-        String nerdir =  basedir + "data/annotation/entity/";
+        String nerdir =  basedir + "data/annotation/entity/simple/";
 
         // This folder contains LTF files, corresponding to the LAF files in nerdir.
-        String ltfdir = origbasedir + "data/monolingual_text/ltf/";
+        String ltfdir = monolingualbasedir + "data/monolingual_text/zipped/ltf/";
 
-        String twdir = basedir + "tools/twitter-processing/twitter-data/";
+        String twdir = monolingualbasedir + "tools/twitter-processing/twitter-data/";
 
-        String dtdpath = loreleidir + "evaluation-20160705/LDC2016E70_LoReHLT_IL3_Incident_Language_References_for_Year_1_Eval_Unsequestered_V1.1/dtds/";
+        String dtdpath = "/shared/corpora/corporaWeb/lorelei/data/LDC2016E87_LORELEI_Amharic_Representative_Language_Pack_Translation_Annotation_Grammar_Lexicon_and_Tools_V2.0/dtds/";
 
         // Directory where conll output files will be written.
-        String outdir = "/shared/corpora/ner/lorelei/ug/All/";
+        String outdir = "/shared/corpora/ner/lorelei/am/All-offsets/";
 
         readFiles(nerdir, dtdpath, ltfdir, outdir);
-        //getTwitter(nerdir, dtdpath, twdir, outdir);
+//        getTwitter(nerdir, dtdpath, twdir, outdir);
 
     }
 

@@ -99,11 +99,11 @@ public class UgDictionary {
         LineIO.write("ug-en.txt", wwlines);
 
         System.out.println("There are " + wordword + " entries out of " + entries.size());
-        
-        List<String> stoplines = LineIO.readFromClasspath("stopwords.txt");
-        for(String stopline : stoplines){
-            stopwords.add(stopline.trim());
-        }
+
+        //List<String> stoplines = LineIO.readFromClasspath("stopwords.txt");
+        //for(String stopline : stoplines){
+        //    stopwords.add(stopline.trim());
+       // }
 
     }
 
@@ -165,7 +165,6 @@ public class UgDictionary {
                     }
                 }
             }
-
         }
 
         LineIO.write(outfname, outlines);
@@ -340,7 +339,7 @@ public class UgDictionary {
 
         List<String> lines = LineIO.read(fname);
         List<String> outlines = new ArrayList<>();
-        
+
         for(String line : lines){
             String[] sline = line.split("\t");
 
@@ -360,15 +359,15 @@ public class UgDictionary {
             }
 
             sline[0] = outname.trim();
-            
+
             outlines.add(StringUtils.join(sline, "\t"));
         }
 
         LineIO.write(outfname, outlines);
 
-        
+
     }
-    
+
     public void processConll(String dir, String outdir) throws Exception {
 
         String[] fnames = (new File(dir)).list();
@@ -379,7 +378,7 @@ public class UgDictionary {
         int otherwise = 0;
 
         HashMap<String, String> memo = new HashMap<>();
-        
+
         int i = 0;
         for(String fname : fnames) {
             List<String> lines = LineIO.read(dir + "/" + fname);
@@ -387,7 +386,7 @@ public class UgDictionary {
                 System.out.println("On " + i + " out of " + fnames.length);
                 System.out.println(translated + ", " + otherwise);
             }
-            
+
             i++;
 
             List<String> outlines = new ArrayList<>();
@@ -630,13 +629,13 @@ public class UgDictionary {
 
 //        d.write("/shared/experiments/mayhew2/lexicons/uig-eng.lorelei.txt");
 
-//        d.processConll("/shared/corpora/ner/lorelei/ug/All/", "/shared/corpora/ner/lorelei/ug/All-uly/");
+        d.processConll("/shared/corpora/ner/lorelei/ug/All-stem-uly/", "/shared/corpora/ner/lorelei/ug/All-stem-best/");
 //        String dir = "/shared/corpora/ner/eval/column/";
         //dir = "/shared/corpora/ner/wikifier-features/ug/";
-        String dir = "/shared/corpora/ner/human/ug/";
+        //String dir = "/shared/corpora/ner/human/ug/";
         //dir = "/home/mayhew2/software/upparse/";
 
-        d.processConll(dir + "Train", dir + "Train-translit");
+        //d.processConll(dir + "Train", dir + "Train-translit");
 
 //        d.processtextfile(dir + "mono-all.txt");
         //d.processbrown("/shared/experiments/ctsai12/workspace/brown-cluster/combine-c1000-min5/paths");
@@ -648,7 +647,7 @@ public class UgDictionary {
         //d.transferAnnotations(dir + "ta/set0-NW1-ann6-gaz-annotation-NI/",dir + "ta/set0-NW1-ann6-gaz-annotation-NI-uly-annotation-swm2/", dir + "ta/set0-NW1-ann6-gaz-annotation-NI-uly-annotation-swm-fixed-noslf/");
 
         //d.processWikidata("/shared/corpora/transliteration/wikidata/wikidata.Uyghur", "wikidata.ULY");
-        
+
 //        System.out.println(d.indexlookup("ئونىۋېرسىتېتى"));
 
 

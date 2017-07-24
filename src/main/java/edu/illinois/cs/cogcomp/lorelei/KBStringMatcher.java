@@ -33,7 +33,7 @@ public class KBStringMatcher {
 
         String indexpath = "/tmp/kb-lucene/";
 
-//        buildindex(kbpath, indexpath);
+        //buildindex(kbpath, indexpath);
         testindex(indexpath);
     }
 
@@ -109,15 +109,9 @@ public class KBStringMatcher {
         writer.close();
     }
 
-    public static void testindex(String indexdir) throws IOException {
-        //=========================================================
-        // Now search
-        //=========================================================
-        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
-        IndexSearcher searcher = new IndexSearcher(reader);
-
+    public static void getnearest(IndexSearcher searcher, double lat, double lon) throws IOException {
         // How to query with a lat/long.
-        TopFieldDocs tfd = LatLonPoint.nearest(searcher, "latlon", 40.1136, -88.2248, 10);
+        TopFieldDocs tfd = LatLonPoint.nearest(searcher, "latlon", lat, lon, 10);
         ScoreDoc[] hits = tfd.scoreDocs;
 
         for(int i=0; i<hits.length; ++i) {
@@ -129,7 +123,14 @@ public class KBStringMatcher {
 
             System.out.println((i + 1) + ". " + d.get("entityid") + ", " + d.get("asciiname") + ", dist (m)=" + dist);
         }
+    }
 
+    public static void testindex(String indexdir) throws IOException {
+        //=========================================================
+        // Now search
+        //=========================================================
+        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
+        IndexSearcher searcher = new IndexSearcher(reader);
 
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
@@ -142,23 +143,28 @@ public class KBStringMatcher {
                 if (s.equalsIgnoreCase("q")) {
                     break;
                 }
+                if(s.startsWith("p ")){
+                    String[] parts = s.split(" ");
+                    getnearest(searcher, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+                }else {
 
-                Query q = new QueryParser("asciiname", analyzer).parse(s);
+                    Query q = new QueryParser("asciiname", analyzer).parse(s);
 
-                System.out.println(q);
-                TopScoreDocCollector collector = TopScoreDocCollector.create(5);
-                searcher.search(q, collector);
-                hits = collector.topDocs().scoreDocs;
+                    System.out.println(q);
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(5);
+                    searcher.search(q, collector);
+                    ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-                System.out.println("There are total of: " + searcher.count(q) + " hits.");
+                    System.out.println("There are total of: " + searcher.count(q) + " hits.");
 
-                // 4. display results
-                System.out.println("Found " + hits.length + " hits.");
-                for(int i=0; i<hits.length; ++i) {
-                    int docId = hits[i].doc;
-                    Document d = searcher.doc(docId);
+                    // 4. display results
+                    System.out.println("Found " + hits.length + " hits.");
+                    for (int i = 0; i < hits.length; ++i) {
+                        int docId = hits[i].doc;
+                        Document d = searcher.doc(docId);
 //                    System.out.println(d.getFields());
-                    System.out.println((i + 1) + ". " + d.get("entityid") + ", " + d.get("asciiname") + " score=" + hits[i].score);
+                        System.out.println((i + 1) + ". " + d.get("entityid") + ", " + d.get("asciiname") + " score=" + hits[i].score);
+                    }
                 }
 
             } catch (Exception e) {
@@ -166,8 +172,6 @@ public class KBStringMatcher {
                 System.out.println("Error searching " + s + " : " + e.getMessage());
             }
         }
-
         reader.close();
     }
-
 }
