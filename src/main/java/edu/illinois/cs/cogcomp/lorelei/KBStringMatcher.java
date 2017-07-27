@@ -10,17 +10,21 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
+import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by mayhew2 on 6/8/17.
@@ -28,16 +32,15 @@ import java.util.List;
 public class KBStringMatcher {
     public static void main(String[] args) throws IOException, ParseException {
         //String dir = "/shared/corpora/corporaWeb/lorelei/data/kb/LDC2017E19_LORELEI_EDL_Knowledge_Base_V0.1/data/";
-        String dir = "./";
-        String kbpath = dir + "allCountriesHeader.txt";
+        //String fname = "entities.tab";
+        String kbpath = "/shared/corpora/cddunca2/allCountriesHeader.txt";
+        String indexpath = "/shared/experiments/mayhew2/indices/allcountries-lucene";
 
-        String indexpath = "/tmp/kb-full-lucene/";
-
-        buildindex(kbpath, indexpath);
+        //buildindex(kbpath, indexpath);
         //testindex(indexpath);
 
-        //stringmatcher("ensemble3.tab.uly.short", indexpath);
-
+        //stringmatcher("/shared/corpora/ner/eval/submission/ner/cp3/ensemble3.tab.uly.short", indexpath);
+        stringmatcher("/shared/corpora/edl/lorelei/amh-anno-all.txt", indexpath);
     }
 
     private static Analyzer analyzer = new Analyzer() {
@@ -69,7 +72,7 @@ public class KBStringMatcher {
                 }
 
                 if (j % 1000 == 0) {
-                    System.out.println("Progress: " + j);
+                    System.out.println("Progress: " + j / 11000000.);
                 }
                 j++;
 
@@ -109,6 +112,8 @@ public class KBStringMatcher {
                 }
 
                 writer.addDocument(d);
+
+                //if(j > 100000){break;}
             }
         }
 
@@ -140,8 +145,11 @@ public class KBStringMatcher {
 
         List<String> lines = LineIO.read(subfile);
         ArrayList<String> outlines = new ArrayList<>();
+        ArrayList<String> outlines2 = new ArrayList<>();
 
         double i = 0;
+        int coverage = 0;
+        int nils = 0;
 
         for(String line : lines){
             if(i % 10 == 0){
@@ -153,13 +161,36 @@ public class KBStringMatcher {
             String[] sline = line.split("\t");
 
             String mention = sline[2];
-            System.out.println(mention);
 
-            String[] cands = getcands(mention, indexdir);
+            Document[] cands = getcands(mention, indexdir, 20);
+
+            List<String> candids = new ArrayList<>();
+            List<String> candnames = new ArrayList<>();
+            for(Document cand : cands){
+                candids.add(cand.get("entityid"));
+                candnames.add(cand.get("asciiname") + ":" + cand.get("entityid"));
+            }
+            String candstring = StringUtils.join(candnames, ",");
+
+            String[] sline2 = line.split("\t");
+            sline2[4] = candstring;
+            outlines2.add(StringUtils.join(sline2, "\t"));
+
+            String goldscore = sline[4];
+            if(goldscore.equals("NIL")){
+                System.out.println("NIL gold");
+                nils++;
+            }else if(candids.contains(goldscore)){
+                coverage++;
+            }else{
+                System.out.println("No cands for: " + mention);
+            }
 
             if(cands.length > 0){
                 // this should really be an ID, but for now, it is just this!
-                sline[4] = cands[0];
+                Document best = getbest(mention, cands);
+                sline[4] = best.get("entityid");
+                sline[5] = best.get("asciiname");
             }else{
                 sline[4] = "null";
             }
@@ -168,8 +199,70 @@ public class KBStringMatcher {
 
         }
 
-        LineIO.write(subfile + ".linked", outlines);
+        System.out.println("Coverage: " + coverage/((float)lines.size()-nils));
 
+
+        LineIO.write(subfile + ".linked", outlines);
+        LineIO.write(subfile + ".cands", outlines2);
+
+    }
+
+    private static List<String> getngrams(String s, int n){
+        List<String> ret = new ArrayList<>();
+        for(int i = 0; i < s.length()- n+1; i++){
+            ret.add(s.substring(i, i+n));
+        }
+        return ret;
+    }
+
+    private static float jaccard(Set<String> a, Set<String> b){
+        Set<String> inter = new HashSet<>(a);
+        inter.retainAll(b);
+        Set<String> union = new HashSet<>(a);
+        union.addAll(b);
+
+        return inter.size() / (float) union.size();
+
+    }
+
+    private static Document getbest(String mention, Document[] cands) {
+        List<String> mentionngrams = getngrams(mention, 2);
+
+        double mxjaccard = -1;
+        double mxalts = -1;
+        Document best = cands[0];
+        for(Document d : cands){
+            String candsurf = d.get("asciiname");
+
+            List<String> candngrams = getngrams(candsurf, 2);
+            double jaccard = jaccard(new HashSet<>(mentionngrams), new HashSet<>(candngrams));
+            double alts = d.get("name2").split(",").length;
+            double score = jaccard * alts;
+
+            if(jaccard > mxjaccard){
+                mxjaccard = jaccard;
+            }
+            if(alts > mxalts){
+                mxalts = alts;
+            }
+
+            d.add(new DoublePoint("score", score));
+
+        }
+
+        double denom = mxalts * mxjaccard;
+
+        double mxscore = -1;
+        for(Document d : cands){
+            DoublePoint scorefield = (DoublePoint) d.getField("score");
+            double score = scorefield.numericValue().doubleValue();
+            score = score / denom;
+            if(score > mxscore){
+                best = d;
+                mxscore = score;
+            }
+        }
+        return best;
     }
 
 
@@ -189,7 +282,7 @@ public class KBStringMatcher {
         }
     }
 
-    public static String[] getcands(String mention, String indexdir) throws IOException {
+    public static Document[] getcands(String mention, String indexdir, int n) throws IOException {
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
@@ -197,21 +290,20 @@ public class KBStringMatcher {
         try {
             q = new QueryParser("asciiname", analyzer).parse(mention);
         } catch (ParseException e) {
-            String[] results = new String[1];
-            results[0] = "null";
+            Document[] results = new Document[0];
             return results;
         }
 
-        TopScoreDocCollector collector = TopScoreDocCollector.create(5);
+        TopScoreDocCollector collector = TopScoreDocCollector.create(n);
         searcher.search(q, collector);
         ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-        String[] results = new String[hits.length];
+        Document[] results = new Document[hits.length];
 
         for (int i = 0; i < hits.length; ++i) {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
-            results[i] = d.get("asciiname");
+            results[i] = d;
         }
 
         return results;
@@ -255,6 +347,7 @@ public class KBStringMatcher {
                     for (int i = 0; i < hits.length; ++i) {
                         int docId = hits[i].doc;
                         Document d = searcher.doc(docId);
+
 //                    System.out.println(d.getFields());
                         System.out.println((i + 1) + ". " + d.get("entityid") + ", " + d.get("asciiname") + " score=" + hits[i].score);
                     }
