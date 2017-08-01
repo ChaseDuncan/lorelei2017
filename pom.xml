@@ -203,6 +203,18 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.0</version>
     </dependency>
+    <dependency>
+      <groupId>org.mapdb</groupId>
+      <artifactId>mapdb</artifactId>
+      <version>3.0.5</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/net.sf.trove4j/trove4j -->
+    <dependency>
+      <groupId>net.sf.trove4j</groupId>
+      <artifactId>trove4j</artifactId>
+      <version>3.0.1</version>
+    </dependency>
+
 
   </dependencies>
 

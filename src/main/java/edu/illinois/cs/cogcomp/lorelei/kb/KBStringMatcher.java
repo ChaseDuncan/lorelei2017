@@ -1,4 +1,4 @@
-package edu.illinois.cs.cogcomp.lorelei;
+package edu.illinois.cs.cogcomp.lorelei.kb;
 
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
@@ -10,23 +10,20 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
-import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
-import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
+ * This is Stephen Doing Stuff.
  * Created by mayhew2 on 6/8/17.
  */
 public class KBStringMatcher {
@@ -34,22 +31,53 @@ public class KBStringMatcher {
         //String dir = "/shared/corpora/corporaWeb/lorelei/data/kb/LDC2017E19_LORELEI_EDL_Knowledge_Base_V0.1/data/";
         //String fname = "entities.tab";
         String kbpath = "/shared/corpora/cddunca2/allCountriesHeader.txt";
-        String indexpath = "/shared/experiments/mayhew2/indices/allcountries-lucene";
+        String indexpath = "/shared/experiments/mayhew2/indices/allcountries-lucene/";
 
         //buildindex(kbpath, indexpath);
-        //testindex(indexpath);
+        testindex(indexpath);
 
         //stringmatcher("/shared/corpora/ner/eval/submission/ner/cp3/ensemble3.tab.uly.short", indexpath);
-        stringmatcher("/shared/corpora/edl/lorelei/amh-anno-all.txt", indexpath);
+        //stringmatcher("/shared/corpora/edl/lorelei/amh-anno-all.txt", indexpath);
     }
 
     private static Analyzer analyzer = new Analyzer() {
         @Override
         protected TokenStreamComponents createComponents(String fieldName) {
-            Tokenizer source = new NGramTokenizer(2,5);
+            Tokenizer source = new NGramTokenizer(2,2);
             return new TokenStreamComponents(source);
         }
     };
+
+
+    public static Document populateDoc(String[] headerfields, String[] sline){
+        Document d = new Document();
+
+        for (int i = 0; i < sline.length; i++) {
+            String field = headerfields[i];
+            String value = sline[i];
+
+            //                    StringReader sr = new StringReader(value);
+            StringField sf = new StringField(field, value, Field.Store.YES);
+            d.add(sf);
+
+            Reader reader = new StringReader(value);
+            TextField tf = new TextField(field, reader);
+            d.add(tf);
+
+            try {
+                if (field.equals("latitude")) {
+                    double lat = Double.parseDouble(value);
+                    double lon = Double.parseDouble(sline[i + 1]);
+                    LatLonPoint llp = new LatLonPoint("latlon", lat, lon);
+                    d.add(llp);
+                }
+            } catch (NumberFormatException e) {
+                // just don't do anything...
+            }
+        }
+
+        return d;
+    }
 
     public static void buildindex(String kbpath, String indexDir) throws IOException {
 
@@ -78,42 +106,20 @@ public class KBStringMatcher {
 
                 String[] sline = line.split("\t");
 
-                Document d = new Document();
-
-                for (int i = 0; i < sline.length; i++) {
-                    String field = headerfields[i];
-                    String value = sline[i];
-
-                    //                    StringReader sr = new StringReader(value);
-                    StringField sf = new StringField(field, value, Field.Store.YES);
-                    d.add(sf);
-
-                    Reader reader = new StringReader(value);
-                    TextField tf = new TextField(field, reader);
-                    d.add(tf);
-
-                    try {
-                        if (field.equals("latitude")) {
-                            double lat = Double.parseDouble(value);
-                            double lon = Double.parseDouble(sline[i + 1]);
-                            LatLonPoint llp = new LatLonPoint("latlon", lat, lon);
-                            d.add(llp);
-                        }
-                    } catch (NumberFormatException e) {
-                        // just don't do anything...
-                    }
-
-
-//                if(field.equals("entityid")){
-//                    Field id = new StoredField(field, value);
-//                    d.add(id);
-//                }else {
-//                }
-                }
-
+                Document d = populateDoc(headerfields,sline);
                 writer.addDocument(d);
 
-                //if(j > 100000){break;}
+                String[] altnames = sline[3].split(",");
+                for(String alt : altnames){
+                    sline[1] = alt;
+                    sline[2] = alt;
+
+                    Document d2 = populateDoc(headerfields,sline);
+                    writer.addDocument(d2);
+                }
+
+
+                //if(j > 10000){break;}
             }
         }
 
@@ -147,6 +153,7 @@ public class KBStringMatcher {
         ArrayList<String> outlines = new ArrayList<>();
         ArrayList<String> outlines2 = new ArrayList<>();
 
+        int numcands = 10;
         double i = 0;
         int coverage = 0;
         int nils = 0;
@@ -162,7 +169,7 @@ public class KBStringMatcher {
 
             String mention = sline[2];
 
-            Document[] cands = getcands(mention, indexdir, 20);
+            Document[] cands = getcands(mention, indexdir, numcands);
 
             List<String> candids = new ArrayList<>();
             List<String> candnames = new ArrayList<>();
@@ -188,7 +195,8 @@ public class KBStringMatcher {
 
             if(cands.length > 0){
                 // this should really be an ID, but for now, it is just this!
-                Document best = getbest(mention, cands);
+                List<Document> reordered = getbest(mention, cands);
+                Document best = reordered.get(reordered.size()-1);
                 sline[4] = best.get("entityid");
                 sline[5] = best.get("asciiname");
             }else{
@@ -203,19 +211,19 @@ public class KBStringMatcher {
 
 
         LineIO.write(subfile + ".linked", outlines);
-        LineIO.write(subfile + ".cands", outlines2);
+        LineIO.write(subfile + ".cands" + numcands, outlines2);
 
     }
 
-    private static List<String> getngrams(String s, int n){
-        List<String> ret = new ArrayList<>();
+    public static ArrayList<String> getngrams(String s, int n){
+        ArrayList<String> ret = new ArrayList<>();
         for(int i = 0; i < s.length()- n+1; i++){
             ret.add(s.substring(i, i+n));
         }
         return ret;
     }
 
-    private static float jaccard(Set<String> a, Set<String> b){
+    public static float jaccard(Set<String> a, Set<String> b){
         Set<String> inter = new HashSet<>(a);
         inter.retainAll(b);
         Set<String> union = new HashSet<>(a);
@@ -225,8 +233,10 @@ public class KBStringMatcher {
 
     }
 
-    private static Document getbest(String mention, Document[] cands) {
+    private static List<Document> getbest(String mention, Document[] cands) {
         List<String> mentionngrams = getngrams(mention, 2);
+
+        HashMap<Document, Double> docscores = new HashMap<>();
 
         double mxjaccard = -1;
         double mxalts = -1;
@@ -237,7 +247,7 @@ public class KBStringMatcher {
             List<String> candngrams = getngrams(candsurf, 2);
             double jaccard = jaccard(new HashSet<>(mentionngrams), new HashSet<>(candngrams));
             double alts = d.get("name2").split(",").length;
-            double score = jaccard * alts;
+            double score = jaccard; // * alts;
 
             if(jaccard > mxjaccard){
                 mxjaccard = jaccard;
@@ -246,23 +256,23 @@ public class KBStringMatcher {
                 mxalts = alts;
             }
 
-            d.add(new DoublePoint("score", score));
-
+            docscores.put(d, score);
         }
 
-        double denom = mxalts * mxjaccard;
+        double denom = mxjaccard; //mxalts * mxjaccard;
 
-        double mxscore = -1;
         for(Document d : cands){
-            DoublePoint scorefield = (DoublePoint) d.getField("score");
-            double score = scorefield.numericValue().doubleValue();
+            double score = docscores.get(d);
             score = score / denom;
-            if(score > mxscore){
-                best = d;
-                mxscore = score;
-            }
+            docscores.put(d, score);
         }
-        return best;
+
+        List<Document> result = docscores.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue())
+                .map((e -> e.getKey()))
+                .collect(Collectors.toList());
+
+        return result;
     }
 
 
@@ -285,6 +295,8 @@ public class KBStringMatcher {
     public static Document[] getcands(String mention, String indexdir, int n) throws IOException {
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
         IndexSearcher searcher = new IndexSearcher(reader);
+
+        searcher.setSimilarity(new NameSimilarity());
 
         Query q;
         try {
@@ -317,6 +329,8 @@ public class KBStringMatcher {
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
+        searcher.setSimilarity(new NameSimilarity());
+
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
 
@@ -336,7 +350,7 @@ public class KBStringMatcher {
                     Query q = new QueryParser("asciiname", analyzer).parse(s);
 
                     System.out.println(q);
-                    TopScoreDocCollector collector = TopScoreDocCollector.create(5);
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(15);
                     searcher.search(q, collector);
                     ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
