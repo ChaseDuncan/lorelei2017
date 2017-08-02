@@ -66,7 +66,7 @@ public class MapDBMatcher {
 
             File namemapfile = new File("/shared/experiments/mayhew2/indices/namemap.db");
             if(namemapfile.exists()){
-                logger.error("DB exists! "+namemap);
+                logger.error("DB exists! "+ namemapfile);
                 System.exit(-1);
             }
 
@@ -97,9 +97,9 @@ public class MapDBMatcher {
         //buildindex(kbpath, map);
         //makenamemap(kbpath);
 
-        testindex(map);
+        //testindex(map);
 
-        //stringmatcher("/shared/corpora/edl/lorelei/amh-anno-all.txt", map);
+        stringmatcher("/shared/corpora/edl/lorelei/amh-anno-all.txt", map);
 
         db.close();
         namedb.close();
@@ -112,7 +112,7 @@ public class MapDBMatcher {
      * @return
      */
     private List<String> getallterms(String mention){
-        List<String> ngrams = new ArrayList<>();
+        HashSet<String> ngrams = new HashSet<>();
 
         int startngram = 2;
         int endngram = 5;
@@ -168,13 +168,21 @@ public class MapDBMatcher {
                 int entityid = Integer.parseInt(sline[0]);
                 String name = sline[1];
                 String asciiname = sline[2];
-                String altnames = sline[3];
+                String[] altnames = sline[3].split(",");
 
                 List<String> ngrams = getallterms(asciiname);
 
+                ngrams.addAll(getallterms(name));
+
+                for(String altname : altnames){
+                    ngrams.addAll(getallterms(altname));
+                }
+
+                // remove duplicates
+                HashSet<String> ngramset = new HashSet<>(ngrams);
 
                 // ngrams is sorted
-                for(String ngram : ngrams){
+                for(String ngram : ngramset){
                     TIntHashSet ids = localmap.getOrDefault(ngram, new TIntHashSet());
 
                     ids.add(entityid);
@@ -249,8 +257,11 @@ public class MapDBMatcher {
 
         List<String> mentionngrams = KBStringMatcher.getngrams(query, 2);
 
+        logger.debug("Query : " + query);
+
         // ngrams is sorted, so the longest are first.
         for(String ngram : ngrams){
+            logger.debug("ngram: " + ngram);
             int[] results = map.get(ngram);
             if(results == null) continue;
             for(int entityid : results){
@@ -258,6 +269,8 @@ public class MapDBMatcher {
 
                 List<String> candngrams = KBStringMatcher.getngrams(candsurf, 2);
                 float score = KBStringMatcher.jaccard(new HashSet<>(candngrams), new HashSet<>(mentionngrams));
+
+                logger.debug(candsurf + ":" + score);
 
                 float i = ret.getOrDefault(entityid, score);
                 ret.put(entityid, i+score);
@@ -320,7 +333,7 @@ public class MapDBMatcher {
         ArrayList<String> outlines = new ArrayList<>();
         ArrayList<String> outlines2 = new ArrayList<>();
 
-        int numcands = 10;
+        int numcands = 20;
         double i = 0;
         int coverage = 0;
         int nils = 0;
@@ -342,7 +355,7 @@ public class MapDBMatcher {
             }
 
             String mention = sline[2];
-            ArrayList<String> mentionngrams = KBStringMatcher.getngrams(mention, 2);
+            //ArrayList<String> mentionngrams = KBStringMatcher.getngrams(mention, 2);
 
             // this maps index to frequency.
             LinkedHashMap<Integer,Float> ret = retrieve(mention, map, numcands);

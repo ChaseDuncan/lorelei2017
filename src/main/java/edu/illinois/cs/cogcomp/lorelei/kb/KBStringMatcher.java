@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -329,7 +330,10 @@ public class KBStringMatcher {
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexdir)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
-        searcher.setSimilarity(new NameSimilarity());
+        //searcher.setSimilarity(new NameSimilarity());
+
+        Document doc = reader.document(3017382);
+        System.out.println(doc.getField("asciiname"));
 
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
@@ -342,9 +346,27 @@ public class KBStringMatcher {
                 if (s.equalsIgnoreCase("q")) {
                     break;
                 }
-                if(s.startsWith("p ")){
+                if(s.startsWith("p ")) {
                     String[] parts = s.split(" ");
                     getnearest(searcher, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+                }else if(s.startsWith("id")){
+                    s = s.substring(3);
+
+                    Query q = new QueryParser("entityid", new StandardAnalyzer()).parse(s);
+
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(5);
+                    searcher.search(q, collector);
+                    ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+                    if(hits.length > 0) {
+                        ScoreDoc best = hits[0];
+                        Document d = searcher.doc(best.doc);
+
+                        for(IndexableField f : d.getFields()){
+                            System.out.println(f.name() + "\t" + d.get(f.name()));
+                        }
+                    }
+
                 }else {
 
                     Query q = new QueryParser("asciiname", analyzer).parse(s);
