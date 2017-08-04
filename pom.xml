@@ -11,9 +11,10 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <cogcomp-nlp-version>3.0.76</cogcomp-nlp-version>
+    <cogcomp-nlp-version>3.1.25</cogcomp-nlp-version>
     <illinois-nlp-pipeline-version>0.1.25</illinois-nlp-pipeline-version>
     <lbjava-version>1.2.26</lbjava-version>
+
   </properties>
 
 
@@ -129,6 +130,12 @@
       <groupId>edu.illinois.cs.cogcomp</groupId>
       <artifactId>illinois-transliteration</artifactId>
       <version>1.0.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>edu.illinois.cs.cogcomp</groupId>
+      <artifactId>illinois-inference</artifactId>
+      <version>${cogcomp-nlp-version}</version>
     </dependency>
 
     <dependency>
