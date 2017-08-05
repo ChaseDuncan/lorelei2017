@@ -35,7 +35,8 @@ public class LORELEIEDL{
                     String candDoc, 
                     String outputFile){
     //gurobiHook = new GurobiHook(0);
-    KBManager kb = new KBManager(dbPath);
+    KBManager kb = new KBManager();
+    kb.initializeEntityMap(dbPath);
     EDLDoc doc = new EDLDoc(candDoc);
     doc.populateCandidateLists(kb); 
     try{
@@ -59,11 +60,15 @@ public class LORELEIEDL{
             new FileWriter(outputFile)));
 
     for(EDLMention m : doc.getMentions()){
+      KBEntity topCand = m.getTopCand();
+      String topCandStr = "NIL";
+      if(topCand != null)
+        topCandStr= topCand.toString();
       out.write(String.format("%s\t%s\t%s\t%s\n",
             m.getDocID(),
             m.getSegID(),
             m.getSurface(),
-            m.getTopCand().toString()));
+            topCandStr));
     }
       out.write("##########################");
       out.write(doc.toString());
