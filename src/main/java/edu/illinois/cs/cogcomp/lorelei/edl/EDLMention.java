@@ -64,7 +64,9 @@ public class EDLMention{
   **/
   public void populateCandidateList(KBManager manager){
     for(String id : candidateIDs){
-      candidates.add(manager.getEntity(id));
+      KBEntity e = manager.getEntity(id);
+      if(e!=null)
+        candidates.add(e);
     }
     normalizePopScores();
     sortCandidatesByPop();
@@ -103,7 +105,9 @@ public class EDLMention{
   *       in candidate list.
   **/
   public KBEntity getTopCand(){
-    return candidates.get(0);
+    if(candidates.size()>0)
+      return candidates.get(0);
+    return null;
   }
   
   public String getSurface(){return surface;}

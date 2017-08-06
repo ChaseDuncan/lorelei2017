@@ -8,6 +8,8 @@ import java.io.IOException;
 public class CoherenceTests{
   public static void main(String[] args){
     String test,kbPath,dbPath,candDoc,outputFile;
+    for(String a : args)
+      System.out.println(a);
     test = args[0];
     switch(test){
       case "kb": 
@@ -25,6 +27,11 @@ public class CoherenceTests{
         outputFile=args[4];
         CoherenceTests.parseCandDocTest(dbPath,candDoc,outputFile);
         break;
+      case "names":
+        kbPath = args[1];
+        dbPath = args[2];
+        CoherenceTests.namesMapTest(kbPath,dbPath);
+        break;
       default:
         System.out.println("Test must be specified.");
     }
@@ -37,12 +44,18 @@ public class CoherenceTests{
   }
 
   public static void entityMapTest(String kbPath, String dbPath){
-      KBManager kb = new KBManager(dbPath);
-      kb.buildEntityMap(kbPath);
+      KBManager kb = new KBManager();
+      kb.buildEntityMap(dbPath,kbPath);
+  }
+
+  public static void namesMapTest(String kbPath, String dbPath){
+      KBManager kb = new KBManager();
+      kb.buildNameToIDsMap(dbPath,kbPath);
   }
 
   public static void kbManagerTest(String dbPath){
-    KBManager kb = new KBManager(dbPath);
+    KBManager kb = new KBManager();
+    kb.initializeEntityMap(dbPath);
     KBEntity entity = kb.getEntity(337996); 
     System.out.println(entity.toString());
   }
