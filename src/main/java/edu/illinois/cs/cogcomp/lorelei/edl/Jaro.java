@@ -3,9 +3,52 @@ package edu.illinois.cs.cogcomp.lorelei.edl;
 import java.util.Arrays;
 
 public class Jaro{
-  public static double distance(String s1, String s2){
-    int[] ret = matches(s1,s2);
-    return 0.0;
+  // Stolen from: git@github.com:tdebatty/java-string-similarity.git
+  /**
+   * Compute Jaro-Winkler similarity.
+   * @param s1 The first string to compare.
+   * @param s2 The second string to compare.
+   * @return The Jaro-Winkler similarity in the range [0, 1]
+   * @throws NullPointerException if s1 or s2 is null.
+   */
+  public static final double similarity(final String s1, final String s2) {
+    if (s1 == null) {
+      throw new NullPointerException("s1 must not be null");
+    }
+
+    if (s2 == null) {
+      throw new NullPointerException("s2 must not be null");
+    }
+
+    if (s1.equals(s2)) {
+      return 1;
+    }
+
+    int[] mtp = matches(s1, s2);
+    float m = mtp[0];
+    if (m == 0) {
+      return 0f;
+    }
+    double j = ((m / s1.length() + m / s2.length() + (m - mtp[1]) / m))
+      / THREE;
+    double jw = j;
+
+    if (j > DEFAULT_THRESHOLD) {
+      jw = j + Math.min(JW_COEF, 1.0 / mtp[THREE]) * mtp[2] * (1 - j);
+    }
+    return jw;
+  }
+
+
+  /**
+   * Return 1 - similarity.
+   * @param s1 The first string to compare.
+   * @param s2 The second string to compare.
+   * @return 1 - similarity.
+   * @throws NullPointerException if s1 or s2 is null.
+   */
+  public final double distance(final String s1, final String s2) {
+    return 1.0 - similarity(s1, s2);
   }
 
   private static int[] matches(final String s1, final String s2) {
@@ -66,4 +109,8 @@ public class Jaro{
     }
     return new int[]{matches, transpositions / 2, prefix, max.length()};
   }
+  static final double DEFAULT_THRESHOLD = 0.7;
+  private static final int THREE = 3;
+  private static final double JW_COEF = 0.1;
 }
+
